@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URL Collection</title>
 
-  <!-- 1. Tailwind CSS (デザインを整えるツール) -->
+  <!-- 1. Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
 
-  <!-- 2. カスタムスタイル (スクロールバーの見た目など) -->
+  <!-- 2. カスタムスタイル -->
   <style>
     body { margin: 0; padding: 0; overflow: hidden; }
     #root { height: 100vh; width: 100vw; }
@@ -21,7 +21,7 @@
     .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #94a3b8; }
   </style>
 
-  <!-- 3. Babel (ブラウザ上でReactを翻訳して動かすツール) -->
+  <!-- 3. Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <!-- 4. Reactとアイコンの読み込み設定 -->
@@ -37,40 +37,41 @@
 </head>
 <body class="bg-gray-50 text-gray-900">
   
-  <!-- ここにReactのアプリが表示されます -->
   <div id="root"></div>
 
-  <!-- 5. アプリのプログラム本体 (type="text/babel" でBabelに翻訳させます) -->
   <script type="text/babel" data-type="module">
     import React, { useState, useEffect, useRef } from 'react';
     import { createRoot } from 'react-dom/client';
-    import { LayoutGrid, Folder, Plus, Link as LinkIcon, User, ExternalLink, Trash2, LogOut, Tag, Compass, Sun, Moon } from 'lucide-react';
+    import { LayoutGrid, Folder, Plus, Link as LinkIcon, User, ExternalLink, Trash2, LogOut, Tag, Compass, Sun, Moon, AlertCircle } from 'lucide-react';
     
-    // Firebaseの読み込み
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+    // --- Firebaseの読み込み ---
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js';
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 
-    // --- Firebase 初期設定 ---
-    // ★GitHub Pagesで動かす時は、YOUR_API_KEY などを自分のFirebaseの鍵に書き換えてください★
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+    // 教えてもらったFirebaseの設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyDauMebzumU_5xJ1QvMsgutMxH2pCu4Tuo",
+      authDomain: "urlshop-93270.firebaseapp.com",
+      projectId: "urlshop-93270",
+      storageBucket: "urlshop-93270.firebasestorage.app",
+      messagingSenderId: "815690587169",
+      appId: "1:815690587169:web:7bacbf18227abca46f5760",
+      measurementId: "G-KE6M0HDYYJ"
     };
     
+    // Firebaseの起動
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    // ご自身の環境用にIDを変更できます
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-url-collection-app';
+    const appId = "urlshop-93270"; // データの保存場所の名前
 
     function App() {
+      // 状態管理
       const [user, setUser] = useState(null);
       const [authLoading, setAuthLoading] = useState(true);
+      const [loginError, setLoginError] = useState(""); // ログインエラー表示用
+      
       const [categories, setCategories] = useState([]);
       const [items, setItems] = useState([]);
       const [activeCategoryId, setActiveCategoryId] = useState(null);
@@ -84,21 +85,8 @@
       const [isDarkMode, setIsDarkMode] = useState(false);
       const messagesEndRef = useRef(null);
 
-      // 1. Authentication
+      // --- 1. ログイン状態の監視 ---
       useEffect(() => {
-        const initAuth = async () => {
-          try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            }
-          } catch (error) {
-            console.error("Auth Error:", error);
-          } finally {
-            setAuthLoading(false);
-          }
-        };
-        initAuth();
-        
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
           setUser(currentUser);
           setAuthLoading(false);
@@ -106,18 +94,21 @@
         return () => unsubscribe();
       }, []);
 
+      // Googleログイン処理
       const handleGoogleLogin = async () => {
+        setLoginError("");
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);
         } catch (error) {
-          console.error("Google Login Error:", error);
-          if (error.code === 'auth/operation-not-supported-in-this-environment' || error.code === 'auth/unauthorized-domain') {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-              await signInAnonymously(auth);
-            }
+          console.error("Login Error:", error);
+          // エラーの内容に応じてメッセージを変える
+          if (error.code === 'auth/unauthorized-domain') {
+            setLoginError("【エラー】このURLからのログインが許可されていません。Firebaseの「承認済みドメイン」にこのサイトのURLを追加してください。");
+          } else if (window.location.protocol === 'file:') {
+            setLoginError("【エラー】パソコンのファイルを直接開いているためブロックされました。GitHub Pagesにアップロードするか、ローカルサーバーで開いてください。");
+          } else {
+            setLoginError(`【エラー】ログインに失敗しました: ${error.message}`);
           }
         }
       };
@@ -130,34 +121,36 @@
         }
       };
 
-      // 2. Fetch Data (Categories & Items)
+      // --- 2. データの読み込み (Firestore) ---
       useEffect(() => {
         if (!user) return;
 
+        // カテゴリーの読み込み
         const categoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'categories');
         const unsubCategories = onSnapshot(categoriesRef, (snapshot) => {
           const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           cats.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
           setCategories(cats);
-          
           if (cats.length > 0 && !activeCategoryId) {
             setActiveCategoryId(cats[0].id);
           }
-        }, (error) => console.error("Categories Fetch Error:", error));
+        });
 
+        // アイテム(URL)の読み込み
         const itemsRef = collection(db, 'artifacts', appId, 'public', 'data', 'urls');
         const unsubItems = onSnapshot(itemsRef, (snapshot) => {
           const fetchedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           fetchedItems.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
           setItems(fetchedItems);
-        }, (error) => console.error("Items Fetch Error:", error));
+        });
 
         return () => {
           unsubCategories();
           unsubItems();
         };
-      }, [user, activeCategoryId]);
+      }, [user]);
 
+      // スクロール処理
       useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, [items, activeCategoryId]);
@@ -165,7 +158,7 @@
       const activeItems = items.filter(item => item.categoryId === activeCategoryId);
       const activeCategory = categories.find(c => c.id === activeCategoryId);
 
-      // --- Handlers ---
+      // --- 3. データの追加・削除 (Firestore) ---
       const handleAddCategory = async (e) => {
         e.preventDefault();
         if (!newCategoryName.trim() || !user) return;
@@ -204,17 +197,20 @@
       };
 
       // --- UI Components ---
+      
+      // ローディング画面
       if (authLoading) {
         return (
           <div className={`flex h-screen w-full items-center justify-center font-sans transition-colors duration-300 ${isDarkMode ? 'dark bg-zinc-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
             <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-4 border-[#5865F2] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-gray-500 dark:text-zinc-400 font-medium">読み込み中...</p>
             </div>
           </div>
         );
       }
 
+      // ログイン画面
       if (!user) {
         return (
           <div className={`flex h-screen w-full items-center justify-center font-sans transition-colors duration-300 ${isDarkMode ? 'dark bg-zinc-900' : 'bg-gray-50'}`}>
@@ -223,8 +219,8 @@
                 <Compass size={32} />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">ログイン</h1>
-              <p className="text-sm text-gray-500 dark:text-zinc-400 mb-8 transition-colors">
-                Googleアカウントを使用して<br/>サービスにアクセスします。
+              <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6 transition-colors">
+                Googleアカウントを使用して<br/>クラウドにデータを保存します。
               </p>
               
               <div className="space-y-3">
@@ -241,6 +237,14 @@
                   Googleでログイン
                 </button>
               </div>
+
+              {/* エラーメッセージがある場合に表示 */}
+              {loginError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-left flex items-start gap-2">
+                  <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-600 font-medium leading-relaxed">{loginError}</p>
+                </div>
+              )}
               
               <div className="mt-6 flex justify-center">
                 <button 
@@ -256,6 +260,7 @@
         );
       }
 
+      // メインアプリ画面
       return (
         <div className={`flex h-screen w-full font-sans overflow-hidden transition-colors duration-300 selection:bg-indigo-100 dark:selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200 ${isDarkMode ? 'dark bg-zinc-900 text-gray-200' : 'bg-gray-50 text-gray-800'}`}>
           
@@ -393,7 +398,7 @@
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center text-xs text-gray-500 dark:text-zinc-400 font-medium transition-colors">
                             <User size={14} className="mr-1.5 text-gray-400 dark:text-zinc-500" />
-                            {item.createdBy.substring(0,4)}
+                            {item.createdBy === user.uid ? "あなた" : item.createdBy.substring(0,4)}
                           </div>
                           {item.createdBy === user.uid && (
                             <button 
@@ -569,7 +574,6 @@
       );
     }
 
-    // Reactアプリの起動
     const rootElement = document.getElementById('root');
     const root = createRoot(rootElement);
     root.render(<App />);

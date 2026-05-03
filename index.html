@@ -42,22 +42,22 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useEffect, useRef } from 'react';
     import { createRoot } from 'react-dom/client';
-    import { LayoutGrid, Folder, Plus, Link as LinkIcon, User, ExternalLink, Trash2, LogOut, Tag, Compass, Sun, Moon, AlertCircle, Coins, Settings } from 'lucide-react';
+    import { LayoutGrid, Folder, Plus, Link as LinkIcon, User, ExternalLink, Trash2, LogOut, Tag, Compass, Sun, Moon, AlertCircle, Coins } from 'lucide-react';
     
     // --- Firebaseの読み込み ---
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js';
-    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, linkWithPopup, OAuthProvider } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js';
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 
-    // ★ 奈落鯖のFirebase設定に変更しました ★
+    // 教えてもらったFirebaseの設定
     const firebaseConfig = {
-      apiKey: "AIzaSyDU4KAhuWrDkWAHSQL312F9hd9GULvXfcI",
-      authDomain: "naraku-archievements.firebaseapp.com",
-      projectId: "naraku-archievements",
-      storageBucket: "naraku-archievements.firebasestorage.app",
-      messagingSenderId: "1077300098321",
-      appId: "1:1077300098321:web:3c4538e4387c09750948b0",
-      measurementId: "G-NV3MT8D2VV"
+      apiKey: "AIzaSyDauMebzumU_5xJ1QvMsgutMxH2pCu4Tuo",
+      authDomain: "urlshop-93270.firebaseapp.com",
+      projectId: "urlshop-93270",
+      storageBucket: "urlshop-93270.firebasestorage.app",
+      messagingSenderId: "815690587169",
+      appId: "1:815690587169:web:7bacbf18227abca46f5760",
+      measurementId: "G-KE6M0HDYYJ"
     };
     
     // Firebaseの起動
@@ -65,12 +65,12 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     
-    // URLショップの保存場所（奈落鯖のデータと混ざらないように別の名前をつけます）
-    const appId = "urlshop"; 
+    // URLショップの保存場所
+    const appId = "urlshop-93270"; 
     
-    // 奈落鯖サイトのデータの場所
-    // ※もし奈落鯖のポイントがうまく表示されない場合、奈落鯖のコード内にある「APP_ID」と同じ名前にここを書き換えてください。
-    const narakuAppId = "naraku-achievements";
+    // 奈落鯖サイトの保存場所（必要に応じて書き換えてください）
+    // もし奈落鯖のコード内で const APP_ID = "naraku" などとしていたら、ここを合わせます。
+    const narakuAppId = typeof __app_id !== 'undefined' ? __app_id : 'naraku-achievements';
 
     function App() {
       // 状態管理
@@ -87,12 +87,6 @@
       
       const [showAddItemModal, setShowAddItemModal] = useState(false);
       const [newItemData, setNewItemData] = useState({ title: '', url: '', description: '', price: '無料' });
-
-      // ★追加: Discord連携と設定モーダル用の状態
-      const [showSettingsModal, setShowSettingsModal] = useState(false);
-      const [linkError, setLinkError] = useState("");
-      // すでにDiscordと連携されているか確認
-      const isDiscordLinked = user?.providerData?.some(p => p.providerId === 'discord.com');
 
       const [isDarkMode, setIsDarkMode] = useState(false);
       const [narakuPt, setNarakuPt] = useState(0); // 奈落鯖のポイント
@@ -128,26 +122,6 @@
         try { await signOut(auth); } catch (error) { console.error("Logout Error:", error); }
       };
 
-      // ★追加: Discord連携の処理
-      const handleDiscordLink = async () => {
-        setLinkError("");
-        const provider = new OAuthProvider('discord.com');
-        try {
-          const result = await linkWithPopup(auth.currentUser, provider);
-          setUser({ ...result.user }); // 画面を更新
-          alert("Discordと連携しました！");
-        } catch (error) {
-          console.error("Link Error:", error);
-          if (error.code === 'auth/unauthorized-domain') {
-            setLinkError("【エラー】このURLからの連携が許可されていません。Firebaseの「承認済みドメイン」に追加してください。");
-          } else if (error.code === 'auth/credential-already-in-use') {
-            setLinkError("【エラー】このDiscordアカウントはすでに別のアカウントに連携されています。");
-          } else {
-            setLinkError(`【エラー】連携に失敗しました: ${error.message}`);
-          }
-        }
-      };
-
       // --- 2. データの読み込み (Firestore) ---
       useEffect(() => {
         if (!user) return;
@@ -177,10 +151,8 @@
           if (docSnap.exists() && docSnap.data().pt !== undefined) {
             setNarakuPt(docSnap.data().pt);
           } else {
-            setNarakuPt(0); // データがない場合は0
+            setNarakuPt(0);
           }
-        }, (error) => {
-          console.log("ポイント読み込みエラー (まだデータがない可能性があります):", error);
         });
 
         return () => {
@@ -333,10 +305,6 @@
                 </div>
                 
                 <div className="flex items-center shrink-0">
-                  {/* ★追加: 設定ボタン */}
-                  <button onClick={() => setShowSettingsModal(true)} className="p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-zinc-700 rounded-lg transition-colors mr-0.5" title="設定">
-                    <Settings size={16} />
-                  </button>
                   <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-1.5 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-zinc-700 rounded-lg transition-colors mr-0.5" title="テーマ切り替え">
                     {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                   </button>
@@ -501,50 +469,6 @@
               </div>
             </div>
           )}
-
-          {/* ★追加: 設定モーダル (Discord連携画面) */}
-          {showSettingsModal && (
-            <div className="fixed inset-0 bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-colors">
-              <div className="bg-white dark:bg-zinc-800 w-full max-w-md rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 border border-transparent dark:border-zinc-700">
-                <div className="p-6 border-b border-gray-100 dark:border-zinc-700 flex items-center gap-3 bg-gray-50 dark:bg-zinc-800/80 transition-colors duration-300">
-                  <div className="w-10 h-10 bg-white dark:bg-zinc-700 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-zinc-600 transition-colors">
-                    <Settings size={20} />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors">設定</h2>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3 transition-colors">アカウント連携</h3>
-                    {isDiscordLinked ? (
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-200 dark:border-green-800/50">
-                        <span className="font-semibold text-sm">Discordと連携済みです</span>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={handleDiscordLink}
-                        className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-3"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 127.14 96.36">
-                          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.2,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
-                        </svg>
-                        Discordと連携する
-                      </button>
-                    )}
-                  </div>
-                  {linkError && (
-                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-left flex items-start gap-2">
-                      <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-600 font-medium leading-relaxed">{linkError}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 border-t border-gray-100 dark:border-zinc-700 flex justify-end bg-gray-50 dark:bg-zinc-800/50 transition-colors duration-300">
-                  <button onClick={() => setShowSettingsModal(false)} className="px-5 py-2.5 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-xl font-medium transition-colors">閉じる</button>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       );
     }

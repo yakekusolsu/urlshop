@@ -49,15 +49,15 @@
     import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js';
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 
-    // 教えてもらったFirebaseの設定
+    // ★ 奈落鯖のFirebase設定に変更しました ★
     const firebaseConfig = {
-      apiKey: "AIzaSyDauMebzumU_5xJ1QvMsgutMxH2pCu4Tuo",
-      authDomain: "urlshop-93270.firebaseapp.com",
-      projectId: "urlshop-93270",
-      storageBucket: "urlshop-93270.firebasestorage.app",
-      messagingSenderId: "815690587169",
-      appId: "1:815690587169:web:7bacbf18227abca46f5760",
-      measurementId: "G-KE6M0HDYYJ"
+      apiKey: "AIzaSyDU4KAhuWrDkWAHSQL312F9hd9GULvXfcI",
+      authDomain: "naraku-archievements.firebaseapp.com",
+      projectId: "naraku-archievements",
+      storageBucket: "naraku-archievements.firebasestorage.app",
+      messagingSenderId: "1077300098321",
+      appId: "1:1077300098321:web:3c4538e4387c09750948b0",
+      measurementId: "G-NV3MT8D2VV"
     };
     
     // Firebaseの起動
@@ -65,12 +65,12 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     
-    // URLショップの保存場所
+    // URLショップの保存場所（奈落鯖のデータと混ざらないように別の名前をつけます）
     const appId = "urlshop-93270"; 
     
-    // 奈落鯖サイトの保存場所（必要に応じて書き換えてください）
-    // もし奈落鯖のコード内で const APP_ID = "naraku" などとしていたら、ここを合わせます。
-    const narakuAppId = typeof __app_id !== 'undefined' ? __app_id : 'naraku-achievements';
+    // 奈落鯖サイトのデータの場所
+    // ※もし奈落鯖のポイントがうまく表示されない場合、奈落鯖のコード内にある「APP_ID」と同じ名前にここを書き換えてください。
+    const narakuAppId = "naraku-achievements";
 
     function App() {
       // 状態管理
@@ -151,8 +151,10 @@
           if (docSnap.exists() && docSnap.data().pt !== undefined) {
             setNarakuPt(docSnap.data().pt);
           } else {
-            setNarakuPt(0);
+            setNarakuPt(0); // データがない場合は0
           }
+        }, (error) => {
+          console.log("ポイント読み込みエラー (まだデータがない可能性があります):", error);
         });
 
         return () => {
